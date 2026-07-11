@@ -44,11 +44,14 @@ cd backend && .venv\Scripts\python -m cctv.main
 1. Open the **Devices** tab → add your NVR (IP, HTTP port 80, RTSP port 554,
    username/password — same credentials as gCMOB/the NVR web page).
 2. Click **Test** — it should report the channel count.
-3. **Live** tab → pick a channel → *Add to grid*.
-4. **Search** tab → pick channel + date → play or download segments.
-   Downloads are saved to `Downloads\CCTV` as standard `.mp4`.
+3. **Live** tab → pick the device → all cameras appear in a grid.
+   Use the **⬇ Download** button on any camera to pick a date + time range
+   (the popup shows recorded coverage for that day).
+4. **Downloads** tab → progress, transfer speed, and the destination folder
+   setting. Files are saved as standard `.mp4` (one job runs at a time).
 
 Passwords are stored in the Windows Credential Manager, not in config files.
+The selected device/tab and stream quality are remembered between sessions.
 
 ## Status
 

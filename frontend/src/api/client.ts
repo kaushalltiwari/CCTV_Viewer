@@ -48,8 +48,15 @@ export interface DownloadJob {
   end: string;
   status: "queued" | "running" | "done" | "error" | "cancelled";
   progress: number;
+  downloaded_bytes: number;
+  rate_bps: number;
+  speed_x: number;
   output_path: string;
   error: string;
+}
+
+export interface Settings {
+  download_dir: string;
 }
 
 export interface Health {
@@ -107,6 +114,12 @@ export const api = {
       ),
     segments: (deviceId: string, channel: number, day: string) =>
       req<Segment[]>(`/api/devices/${deviceId}/recordings?channel=${channel}&day=${day}`),
+  },
+
+  settings: {
+    get: () => req<Settings>("/api/settings"),
+    update: (s: Settings) =>
+      req<Settings>("/api/settings", { method: "PUT", body: JSON.stringify(s) }),
   },
 
   downloads: {

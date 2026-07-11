@@ -3,19 +3,24 @@ import { api, Device, Health } from "./api/client";
 import DevicesPage from "./pages/DevicesPage";
 import DownloadsPage from "./pages/DownloadsPage";
 import LivePage from "./pages/LivePage";
-import SearchPage from "./pages/SearchPage";
 
-type Tab = "live" | "search" | "downloads" | "devices";
+type Tab = "live" | "downloads" | "devices";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "live", label: "Live", icon: "📺" },
-  { id: "search", label: "Search", icon: "🔍" },
   { id: "downloads", label: "Downloads", icon: "⬇️" },
   { id: "devices", label: "Devices", icon: "🖥️" },
 ];
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>("devices");
+  const [tab, setTabState] = useState<Tab>(() => {
+    const saved = localStorage.getItem("cctv.tab") as Tab | null;
+    return saved && TABS.some((t) => t.id === saved) ? saved : "devices";
+  });
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    localStorage.setItem("cctv.tab", t);
+  };
   const [devices, setDevices] = useState<Device[]>([]);
   const [health, setHealth] = useState<Health | null>(null);
 
@@ -58,7 +63,6 @@ export default function App() {
 
       <main className="flex-1 overflow-auto p-6">
         {tab === "live" && <LivePage devices={devices} />}
-        {tab === "search" && <SearchPage devices={devices} />}
         {tab === "downloads" && <DownloadsPage />}
         {tab === "devices" && <DevicesPage devices={devices} onChanged={refreshDevices} />}
       </main>

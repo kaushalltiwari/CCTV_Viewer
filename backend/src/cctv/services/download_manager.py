@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import time
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -15,11 +16,14 @@ from typing import Callable
 
 from pydantic import BaseModel
 
-from ..paths import default_download_dir, find_binary
+from ..paths import find_binary
+from .settings import SettingsStore
 
 log = logging.getLogger(__name__)
 
 _TIME_RE = re.compile(rb"out_time_ms=(\d+)")
+_SIZE_RE = re.compile(rb"total_size=(\d+)")
+_SPEED_RE = re.compile(rb"speed=\s*([\d.]+)x")
 
 
 class DownloadJob(BaseModel):
@@ -31,13 +35,17 @@ class DownloadJob(BaseModel):
     end: datetime
     status: str = "queued"   # queued | running | done | error | cancelled
     progress: float = 0.0    # 0..1
+    downloaded_bytes: int = 0
+    rate_bps: float = 0.0    # current transfer rate, bytes/second
+    speed_x: float = 0.0     # ffmpeg speed vs realtime (e.g. 1.02)
     output_path: str = ""
     error: str = ""
 
 
 class DownloadManager:
-    def __init__(self, concurrency: int = 2) -> None:
+    def __init__(self, settings: SettingsStore, concurrency: int = 1) -> None:
         self.ffmpeg = find_binary("ffmpeg")
+        self._settings = settings
         self.jobs: dict[str, DownloadJob] = {}
         self._queue: asyncio.Queue[tuple[DownloadJob, str]] = asyncio.Queue()
         self._procs: dict[str, asyncio.subprocess.Process] = {}
@@ -78,7 +86,7 @@ class DownloadManager:
             raise RuntimeError("ffmpeg is not available - install it to enable downloads")
         stamp = start.strftime("%Y%m%d_%H%M%S")
         safe_name = re.sub(r"[^\w-]", "_", device_name)
-        out = default_download_dir() / f"{safe_name}_ch{channel}_{stamp}.mp4"
+        out = self._settings.download_dir / f"{safe_name}_ch{channel}_{stamp}.mp4"
         job = DownloadJob(
             id=uuid.uuid4().hex[:12], device_id=device_id, device_name=device_name,
             channel=channel, start=start, end=end, output_path=str(out),
@@ -136,16 +144,28 @@ class DownloadManager:
         )
         self._procs[job.id] = proc
         stderr_task = asyncio.create_task(proc.stderr.read())
+        last_notify = 0.0
+        last_rate_sample: tuple[float, int] | None = None  # (monotonic, bytes)
         try:
             assert proc.stdout is not None
+            # ffmpeg -progress emits key=value blocks terminated by "progress=..."
             async for line in proc.stdout:
-                m = _TIME_RE.search(line)
-                if m and duration_s > 0:
-                    done_s = int(m.group(1)) / 1_000_000
-                    new_progress = min(done_s / duration_s, 1.0)
-                    if new_progress - job.progress >= 0.01:
-                        job.progress = new_progress
-                        self._notify(job)
+                if m := _TIME_RE.search(line):
+                    if duration_s > 0:
+                        done_s = int(m.group(1)) / 1_000_000
+                        job.progress = min(done_s / duration_s, 1.0)
+                elif m := _SIZE_RE.search(line):
+                    now = time.monotonic()
+                    size = int(m.group(1))
+                    if last_rate_sample and now > last_rate_sample[0]:
+                        job.rate_bps = (size - last_rate_sample[1]) / (now - last_rate_sample[0])
+                    last_rate_sample = (now, size)
+                    job.downloaded_bytes = size
+                elif m := _SPEED_RE.search(line):
+                    job.speed_x = float(m.group(1))
+                elif line.startswith(b"progress=") and time.monotonic() - last_notify >= 1.0:
+                    last_notify = time.monotonic()
+                    self._notify(job)
             code = await proc.wait()
         finally:
             self._procs.pop(job.id, None)

@@ -13,10 +13,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .api import devices, downloads, recordings, streams
+from .api import devices, downloads, recordings, settings, streams
 from .services.device_store import DeviceStore
 from .services.download_manager import DownloadManager
 from .services.go2rtc import Go2RTCService
+from .services.settings import SettingsStore
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
@@ -26,8 +27,9 @@ FRONTEND_DIST = Path(__file__).resolve().parents[3] / "frontend" / "dist"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.store = DeviceStore()
+    app.state.settings = SettingsStore()
     app.state.go2rtc = Go2RTCService()
-    app.state.downloads = DownloadManager()
+    app.state.downloads = DownloadManager(app.state.settings)
     await app.state.go2rtc.start()
     await app.state.downloads.start()
     yield
@@ -50,6 +52,7 @@ app.include_router(devices.router)
 app.include_router(streams.router)
 app.include_router(recordings.router)
 app.include_router(downloads.router)
+app.include_router(settings.router)
 
 
 @app.get("/api/health")
