@@ -145,13 +145,18 @@ class DahuaAdapter(NVRAdapter):
 
         segments: list[Segment] = []
         try:
-            resp = await self._get("/cgi-bin/mediaFileFind.cgi", {
-                "action": "findFile",
-                "object": finder,
-                "condition.Channel": str(channel),
-                "condition.StartTime": _fmt_time(start),
-                "condition.EndTime": _fmt_time(end),
-            })
+            try:
+                resp = await self._get("/cgi-bin/mediaFileFind.cgi", {
+                    "action": "findFile",
+                    "object": finder,
+                    "condition.Channel": str(channel),
+                    "condition.StartTime": _fmt_time(start),
+                    "condition.EndTime": _fmt_time(end),
+                })
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 400:
+                    return []  # firmware answers 400 when nothing matches the range
+                raise
             if "ok" not in resp.lower():
                 return []  # no recordings in range
 
