@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, Channel, Device, StreamHandle } from "../api/client";
-import DownloadModal from "../components/DownloadModal";
+import RecordingsBrowser from "../components/RecordingsBrowser";
 import VideoPlayer from "../components/VideoPlayer";
 
 export default function LivePage({ devices }: { devices: Device[] }) {
@@ -108,7 +108,7 @@ export default function LivePage({ devices }: { devices: Device[] }) {
       )}
 
       {download && deviceId && (
-        <DownloadModal deviceId={deviceId} channel={download} onClose={() => setDownload(null)} />
+        <RecordingsBrowser deviceId={deviceId} channel={download} onClose={() => setDownload(null)} />
       )}
     </div>
   );
