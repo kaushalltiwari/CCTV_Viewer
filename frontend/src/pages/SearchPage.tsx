@@ -29,6 +29,8 @@ export default function SearchPage({ devices }: { devices: Device[] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [rangeStart, setRangeStart] = useState("00:00:00");
+  const [rangeEnd, setRangeEnd] = useState("23:59:59");
 
   const search = async () => {
     setBusy(true);
@@ -62,6 +64,22 @@ export default function SearchPage({ devices }: { devices: Device[] }) {
         device_id: deviceId, channel: seg.channel, start: seg.start, end: seg.end,
       });
       setNotice(`Queued download ${hhmm(seg.start)} – ${hhmm(seg.end)} → see Downloads tab`);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const downloadRange = async () => {
+    setError("");
+    setNotice("");
+    try {
+      await api.downloads.enqueue({
+        device_id: deviceId,
+        channel,
+        start: `${day}T${rangeStart}`,
+        end: `${day}T${rangeEnd}`,
+      });
+      setNotice(`Queued download ${rangeStart} – ${rangeEnd} → see Downloads tab`);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -101,6 +119,25 @@ export default function SearchPage({ devices }: { devices: Device[] }) {
               );
             })}
           </div>
+
+          {/* range download */}
+          {segments.length > 0 && (
+            <div className="mb-6 flex flex-wrap items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900 p-3 text-sm">
+              <span className="text-neutral-400">Download range:</span>
+              <input type="time" step="1" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)}
+                className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-sm focus:border-emerald-600 focus:outline-none" />
+              <span className="text-neutral-500">→</span>
+              <input type="time" step="1" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)}
+                className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-sm focus:border-emerald-600 focus:outline-none" />
+              <button onClick={downloadRange}
+                className="rounded bg-emerald-700 px-3 py-1 text-sm font-medium text-white hover:bg-emerald-600">
+                ⬇ Download range
+              </button>
+              <span className="text-xs text-neutral-500">
+                saved as one .mp4 · long ranges download at playback speed, so a full day can take a while
+              </span>
+            </div>
+          )}
 
           {segments.length === 0 ? (
             <p className="text-sm text-neutral-500">No recordings on {day} for this channel.</p>

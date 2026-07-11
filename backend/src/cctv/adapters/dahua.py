@@ -125,11 +125,15 @@ class DahuaAdapter(NVRAdapter):
             if "ok" not in resp.lower():
                 return []  # no recordings in range
 
-            while True:
+            # Firmwares return at most N items per findNextFile call (often 64,
+            # regardless of the requested count), so keep polling until empty.
+            for _ in range(200):  # hard cap: 200 batches ≈ 12800+ files/day
                 batch = _parse_kv(await self._get("/cgi-bin/mediaFileFind.cgi", {
                     "action": "findNextFile", "object": finder, "count": "100",
                 }))
                 found = int(batch.get("found", "0") or 0)
+                if found <= 0:
+                    break
                 for i in range(found):
                     p = f"items[{i}]"
                     try:
@@ -143,8 +147,6 @@ class DahuaAdapter(NVRAdapter):
                         ))
                     except (KeyError, ValueError):
                         log.warning("Skipping unparsable segment %s: %r", i, batch.get(f"{p}.StartTime"))
-                if found < 100:
-                    break
         finally:
             for action in ("close", "destroy"):
                 try:
