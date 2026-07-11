@@ -5,10 +5,16 @@
 ██║     ██║        ██║   ╚██╗ ██╔╝
 ╚██████╗╚██████╗   ██║    ╚████╔╝
  ╚═════╝ ╚═════╝   ╚═╝     ╚═══╝
-   closed-circuit, open source
+██╗   ██╗██╗███████╗██╗    ██╗███████╗██████╗
+██║   ██║██║██╔════╝██║    ██║██╔════╝██╔══██╗
+██║   ██║██║█████╗  ██║ █╗ ██║█████╗  ██████╔╝
+╚██╗ ██╔╝██║██╔══╝  ██║███╗██║██╔══╝  ██╔══██╗
+ ╚████╔╝ ██║███████╗╚███╔███╔╝███████╗██║  ██║
+  ╚═══╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚══════╝╚═╝  ╚═╝
+        closed-circuit, open source
 ```
 
-# CCTV — a desktop web client for CP Plus NVRs
+# CCTV_Viewer — a desktop web client for CP Plus NVRs
 
 View your cameras live, browse recordings on a timeline, play them back, and save them
 as standard `.mp4` files — a **gCMOB replacement for the PC**, running entirely on your

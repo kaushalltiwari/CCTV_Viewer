@@ -35,7 +35,7 @@ export default function App() {
     <div className="flex h-screen">
       <aside className="w-52 shrink-0 border-r border-neutral-800 bg-neutral-900 flex flex-col">
         <div className="px-4 py-4 text-lg font-semibold tracking-wide text-white">
-          CCTV<span className="text-emerald-500">.</span>
+          CCTV<span className="text-emerald-500">_</span>Viewer
         </div>
         <nav className="flex-1">
           {TABS.map((t) => (

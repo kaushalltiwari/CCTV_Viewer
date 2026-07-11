@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
     await app.state.store.close()
 
 
-app = FastAPI(title="CCTV", lifespan=lifespan)
+app = FastAPI(title="CCTV_Viewer", lifespan=lifespan)
 
 # Vite dev server origin (development only; irrelevant when serving the built bundle)
 app.add_middleware(
