@@ -123,7 +123,10 @@ class DownloadManager:
             self.ffmpeg, "-hide_banner", "-nostats", "-y",
             "-rtsp_transport", "tcp",
             "-i", playback_url,
-            "-c", "copy",
+            # video is copied untouched; NVR audio is G.711 (pcm_mulaw/alaw),
+            # which mp4 can't hold, so transcode it to AAC
+            "-c:v", "copy",
+            "-c:a", "aac",
             "-movflags", "+faststart",
             "-t", str(duration_s),          # safety cap; URL is already end-bounded
             "-progress", "pipe:1",
@@ -154,8 +157,12 @@ class DownloadManager:
             job.progress = 1.0
         else:
             stderr = (await stderr_task).decode(errors="replace")
+            # ffmpeg ends with a generic "Conversion failed!"; the real cause
+            # is in the lines just before it
+            lines = [l.strip() for l in stderr.splitlines()
+                     if l.strip() and "Conversion failed" not in l]
             job.status = "error"
-            job.error = stderr.strip().splitlines()[-1] if stderr.strip() else f"ffmpeg exited {code}"
+            job.error = " | ".join(lines[-2:]) if lines else f"ffmpeg exited {code}"
             Path(job.output_path).unlink(missing_ok=True)
         self._notify(job)
 
