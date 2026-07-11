@@ -16,3 +16,4 @@ backend/src/cctv/vendor/*
 # Local
 .env
 *.log
+frontend/tsconfig.tsbuildinfo
