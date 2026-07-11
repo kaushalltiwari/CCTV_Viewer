@@ -11,7 +11,7 @@
 ╚██╗ ██╔╝██║██╔══╝  ██║███╗██║██╔══╝  ██╔══██╗
  ╚████╔╝ ██║███████╗╚███╔███╔╝███████╗██║  ██║
   ╚═══╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚══════╝╚═╝  ╚═╝
-        closed-circuit, open source
+       open source
 ```
 
 # CCTV_Viewer — a desktop web client for CP Plus NVRs
@@ -118,3 +118,7 @@ Core features work end-to-end against real hardware. Not yet done:
 - [ ] ONVIF / DVRIP adapters (for non-Dahua-based NVRs)
 - [ ] Motion-event list view, playback speed control, snapshots, PTZ
 - [ ] One-click packaged build (PyInstaller launcher)
+
+## License
+
+[MIT](LICENSE)
