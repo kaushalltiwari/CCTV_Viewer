@@ -1,3 +1,13 @@
+```text
+ ██████╗ ██████╗████████╗██╗   ██╗
+██╔════╝██╔════╝╚══██╔══╝██║   ██║
+██║     ██║        ██║   ██║   ██║
+██║     ██║        ██║   ╚██╗ ██╔╝
+╚██████╗╚██████╗   ██║    ╚████╔╝
+ ╚═════╝ ╚═════╝   ╚═╝     ╚═══╝
+   closed-circuit, open source
+```
+
 # CCTV — a desktop web client for CP Plus NVRs
 
 View your cameras live, browse recordings on a timeline, play them back, and save them
