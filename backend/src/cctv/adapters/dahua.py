@@ -49,7 +49,12 @@ class DahuaAdapter(NVRAdapter):
         )
 
     async def _get(self, path: str, params: dict | None = None) -> str:
-        resp = await self._client.get(path, params=params)
+        # Build the query string by hand: httpx encodes spaces as '+', which
+        # this firmware fails to parse in time conditions (%20 works).
+        if params:
+            query = "&".join(f"{k}={quote(str(v), safe='')}" for k, v in params.items())
+            path = f"{path}?{query}"
+        resp = await self._client.get(path)
         if resp.status_code == 401:
             raise DahuaError("Authentication failed (check username/password)")
         resp.raise_for_status()
@@ -107,7 +112,32 @@ class DahuaAdapter(NVRAdapter):
 
     async def query_segments(self, channel: int, start: datetime,
                              end: datetime) -> list[Segment]:
-        """mediaFileFind lifecycle: factory.create -> findFile -> findNextFile* -> close."""
+        """All recorded segments in [start, end].
+
+        A single finder query returns only a limited window of results on many
+        firmwares (regardless of pagination), so re-issue the search from the
+        end of the last returned file until the range is covered.
+        """
+        segments: list[Segment] = []
+        seen: set[tuple] = set()
+        cursor = start
+        for _ in range(500):
+            chunk = await self._find_files(channel, cursor, end)
+            new = [s for s in chunk if (s.channel, s.start, s.end) not in seen]
+            seen.update((s.channel, s.start, s.end) for s in new)
+            segments.extend(new)
+            if not new:
+                break
+            last_end = max(s.end for s in chunk)
+            if last_end <= cursor or last_end >= end:
+                break
+            cursor = last_end
+        segments.sort(key=lambda s: s.start)
+        return segments
+
+    async def _find_files(self, channel: int, start: datetime,
+                          end: datetime) -> list[Segment]:
+        """One mediaFileFind lifecycle: factory.create -> findFile -> findNextFile* -> close."""
         text = await self._get("/cgi-bin/mediaFileFind.cgi", {"action": "factory.create"})
         finder = text.partition("=")[2].strip()
         if not finder:
@@ -137,8 +167,10 @@ class DahuaAdapter(NVRAdapter):
                 for i in range(found):
                     p = f"items[{i}]"
                     try:
+                        # items[].Channel is 0-based while query conditions are
+                        # 1-based; use the requested channel to stay consistent
                         segments.append(Segment(
-                            channel=int(batch.get(f"{p}.Channel", channel)) or channel,
+                            channel=channel,
                             start=datetime.strptime(batch[f"{p}.StartTime"], "%Y-%m-%d %H:%M:%S"),
                             end=datetime.strptime(batch[f"{p}.EndTime"], "%Y-%m-%d %H:%M:%S"),
                             kind=_KIND_MAP.get(batch.get(f"{p}.Flags[0]", ""), "regular"),
